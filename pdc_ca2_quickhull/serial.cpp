@@ -1,4 +1,6 @@
 #include<bits/stdc++.h>
+#include <fstream>
+
 using namespace std;
 
 #define IntegerPair pair<int, int>
@@ -72,15 +74,34 @@ void driverCode(vector<IntegerPair> &a, int n, vector<vector<bool>> &convex_a)
 
 int main()
 {
-    int lb = -20000;
-    int ub = 20000;
-    int n = 10000000;
+    int lb = -23000;
+    int ub = 23000;
+    int n = 100000000;
+
+	ifstream infile1("num1.txt", ios::in | ios::binary);
+	ifstream infile2("num2.txt", ios::in | ios::binary);
+    vector<int> a1(n);
+	vector<int> a2(n);
+    copy(istream_iterator<int>(infile1),
+         istream_iterator<int>(),
+         inserter(a1, a1.end()));
+	copy(istream_iterator<int>(infile2),
+         istream_iterator<int>(),
+         inserter(a2, a2.end()));
+
+	infile1.close();
+	infile2.close();
 
 	vector<IntegerPair> a(n);
     for(int i=0;i<n;i++){
-        a[i].first = (rand() % (ub - lb + 1)) + lb;
-        a[i].second = (rand() % (ub - lb + 1)) + lb;
-    } 
+        a[i].first = a1[i];
+        a[i].second = a2[i];
+    }
+	a1.clear();
+	a2.clear();
+	vector<int>().swap(a1);
+	vector<int>().swap(a2);
+
     vector<vector<bool>> convex_a (n);
     for(int i=0;i<n;i++)
     {

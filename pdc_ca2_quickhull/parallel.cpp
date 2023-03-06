@@ -4,7 +4,8 @@ using namespace std;
 
 #define IntegerPair pair<int, int>
 #define PADDING 127
-#define SEQUENTIAL_LIM 1000000
+#define SEQUENTIAL_LIM 100000000
+
 
 int findIfAboveOrBelow(IntegerPair p1, IntegerPair p2, IntegerPair p)
 {
@@ -38,24 +39,28 @@ void quickHull(vector<IntegerPair> &a, int n, IntegerPair p1, IntegerPair p2, in
 			max_dist = temp;
 		}
 	}
-
 	if (ind == -1)
 	{
 		return;
 	}
     convex_a[ind][PADDING] = true;
-    if(n/depth <= SEQUENTIAL_LIM){
+    if(n/pow(2, depth) <= SEQUENTIAL_LIM){
         quickHull(a, n, a[ind], p1, -findIfAboveOrBelow(a[ind], p1, p2), convex_a, depth+1);
 	    quickHull(a, n, a[ind], p2, -findIfAboveOrBelow(a[ind], p2, p1), convex_a, depth+1);
-        return;
     }
-    #pragma omp parallel sections
-    {
-        #pragma omp section
-        quickHull(a, n, a[ind], p1, -findIfAboveOrBelow(a[ind], p1, p2), convex_a, depth+1);
-        #pragma omp section
-	    quickHull(a, n, a[ind], p2, -findIfAboveOrBelow(a[ind], p2, p1), convex_a, depth+1);
-    }
+    else{
+		#pragma omp parallel sections
+		{
+			#pragma omp section
+			{
+				quickHull(a, n, a[ind], p1, -findIfAboveOrBelow(a[ind], p1, p2), convex_a, depth+1);
+			}
+			#pragma omp section
+			{
+				quickHull(a, n, a[ind], p2, -findIfAboveOrBelow(a[ind], p2, p1), convex_a, depth+1);
+			}
+		}
+	}
 }
 
 void driverCode(vector<IntegerPair> &a, int n, vector<vector<bool>> &convex_a)
@@ -67,32 +72,73 @@ void driverCode(vector<IntegerPair> &a, int n, vector<vector<bool>> &convex_a)
 	}
 
 	int min_x = 0, max_x = 0;
-	for (int i=1; i<n; i++)
+	#pragma omp parallel sections
 	{
-		if (a[i].first < a[min_x].first)
-			min_x = i;
-		if (a[i].first > a[max_x].first)
-			max_x = i;
+		#pragma omp section
+		{
+			for (int i=1; i<n; i++)
+			{
+				if (a[i].first < a[min_x].first)
+					min_x = i;
+			}
+		}
+		#pragma omp section
+		{
+			for (int i=1; i<n; i++)
+			{
+				if (a[i].first > a[max_x].first)
+					max_x = i;
+			}
+		}
 	}
 
     convex_a[min_x][PADDING] = true;
     convex_a[max_x][PADDING] = true;
 
-	quickHull(a, n, a[min_x], a[max_x], 1, convex_a, 1);
-	quickHull(a, n, a[min_x], a[max_x], -1, convex_a, 1);
+	#pragma omp parallel sections
+	{
+		#pragma omp section
+		{
+			quickHull(a, n, a[min_x], a[max_x], 1, convex_a, 1);
+		}
+		#pragma omp section
+		{
+			quickHull(a, n, a[min_x], a[max_x], -1, convex_a, 1);
+		}
+	}
 }
 
 int main()
 {
-    int lb = -20000;
-    int ub = 20000;
-    int n = 10000000;
+	omp_set_num_threads(2);
+	int lb = -23000;
+    int ub = 23000;
+    int n = 100000000;
+
+	ifstream infile1("num1.txt", ios::in | ios::binary);
+	ifstream infile2("num2.txt", ios::in | ios::binary);
+    vector<int> a1(n);
+	vector<int> a2(n);
+    copy(istream_iterator<int>(infile1),
+         istream_iterator<int>(),
+         inserter(a1, a1.end()));
+	copy(istream_iterator<int>(infile2),
+         istream_iterator<int>(),
+         inserter(a2, a2.end()));
+
+	infile1.close();
+	infile2.close();
 
 	vector<IntegerPair> a(n);
     for(int i=0;i<n;i++){
-        a[i].first = (rand() % (ub - lb + 1)) + lb;
-        a[i].second = (rand() % (ub - lb + 1)) + lb;
-    } 
+        a[i].first = a1[i];
+        a[i].second = a2[i];
+    }
+	a1.clear();
+	a2.clear();
+	vector<int>().swap(a1);
+	vector<int>().swap(a2);
+
     vector<vector<bool>> convex_a (n);
     for(int i=0;i<n;i++)
     {
